@@ -5,3 +5,7 @@ sqlalchemy
 alembic
 asyncpg
 psycopg2-binary
+playwright==1.44.0
+pytest
+pytest-asyncio
+httpx

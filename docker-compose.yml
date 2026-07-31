@@ -53,6 +53,14 @@ services:
       retries: 5
       start_period: 10s
 
+  browser:
+    image: mcr.microsoft.com/playwright:v1.44.0-jammy
+    command: /ms-playwright/chromium-1117/chrome-linux/chrome --headless --remote-debugging-port=9222 --remote-debugging-address=0.0.0.0 --no-sandbox --remote-allow-origins=*
+    ports:
+      - "9222:9222"
+    environment:
+      - DEBUG=pw:api
+
   frontend:
     build:
       context: ./frontend

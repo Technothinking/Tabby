@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>DOM Observation Fixture</title>
+</head>
+
+<body>
+    <h1>Book a Flight</h1>
+
+    <div>
+        <label for="from">From:</label>
+        <select id="from" aria-label="From City">
+            <option value="BOM" selected>Mumbai (BOM)</option>
+            <option value="DEL">Delhi (DEL)</option>
+        </select>
+    </div>
+
+    <div>
+        <label for="to">To:</label>
+        <input type="text" id="to" placeholder="Destination City" value="BLR">
+    </div>
+
+    <div>
+        <label><input type="checkbox" id="oneway" checked> One way</label>
+    </div>
+
+    <button id="search">Search flights</button>
+
+    <!-- Hidden element that should NOT be extracted -->
+    <button id="hidden-btn" style="display: none;">Invisible Admin Actions</button>
+    <button id="visibility-hidden-btn" style="visibility: hidden;">Another Invisible</button>
+
+    <a href="/filters" id="filters-link">Show filters</a>
+
+    <div tabindex="0" role="button" aria-label="Custom clickable div">Advanced Options</div>
+</body>
+
+</html>

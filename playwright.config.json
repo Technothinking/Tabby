@@ -1,0 +1,5 @@
+{
+    "port": 9222,
+    "wsPath": "playwright",
+    "host": "0.0.0.0"
+}
