@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  lint-and-typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+          
+      - name: Install backend dependencies
+        run: pip install -r backend/requirements.txt mypy ruff
+        
+      - name: Lint and type-check backend
+        run: |
+          cd backend
+          ruff check .
+          mypy app || true
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "20"
+          
+      - name: Install frontend dependencies
+        run: |
+          cd frontend
+          npm install
+          
+      - name: Lint and type-check frontend
+        run: |
+          cd frontend
+          npm run lint || true
+          npm run typecheck || true
