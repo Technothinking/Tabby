@@ -50,7 +50,7 @@ async def observe_page(req: ObserveRequest):
     try:
         context = await driver.new_context()
         page = await context.new_page()
-        await page.goto(req.url, wait_until="networkidle")
+        await page.goto(req.url, wait_until="load")
         observation = await DOMExtractor.extract(page)
         return {"success": True, "dom_text": observation.dom_text}
     except Exception as e:
