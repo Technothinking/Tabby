@@ -5,6 +5,8 @@ from pydantic_settings import BaseSettings
 from app.browser.actions import ProposedAction, ActionDispatcher
 from app.browser.driver import BrowserDriver
 from app.agent.grounding.dom_extractor import DOMExtractor
+from app.api.runs import router as runs_router
+from app.api.ws import router as ws_router
 
 class ObserveRequest(BaseModel):
     url: str
@@ -24,6 +26,8 @@ settings = Settings()
 
 app = FastAPI(title="Autonomous Browser-Operating Agent (ABOA) API")
 
+app.include_router(runs_router, prefix="/api/v1/runs", tags=["Runs"])
+app.include_router(ws_router, prefix="/ws/runs", tags=["WebSockets"])
 @app.get("/health")
 async def health_check():
     # Phase 0 mock healthcheck (will implement actual ping soon) #TODO ping real DB/Redis

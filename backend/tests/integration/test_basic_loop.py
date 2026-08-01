@@ -56,7 +56,7 @@ async def test_langgraph_loop():
     }
     
     graph = build_graph(driver, llm_client)
-    config = {"recursion_limit": 25}
+    config = {"configurable": {"thread_id": "test_basic_loop"}, "recursion_limit": 25}
     
     # Invoke the graph natively
     final_state = await graph.ainvoke(state, config=config)

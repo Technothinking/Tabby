@@ -2,13 +2,20 @@ fastapi
 uvicorn[standard]
 pydantic-settings
 sqlalchemy
-alembic
 asyncpg
+alembic
 psycopg2-binary
 playwright==1.44.0
 pytest
-pytest-asyncio
-httpx
-langgraph
+pytest-asyncio==0.23.5
+# Langchain and Phase 3 Dependencies
 langchain-core
+langgraph
 google-genai
+
+# Phase 5: DB, Queue & WebSockets
+sqlalchemy
+asyncpg
+alembic
+redis
+pgvector
