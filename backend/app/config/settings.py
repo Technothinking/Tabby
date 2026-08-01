@@ -11,6 +11,8 @@ class Settings(BaseSettings):
     browser_cdp_url: str = "http://browser:9222"
     browser_headless: bool = True
     browser_action_timeout_ms: int = 10000
+    
+    gemini_api_key: str | None = None
 
     class Config:
         env_file = ".env"

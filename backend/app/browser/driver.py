@@ -10,6 +10,8 @@ class BrowserDriver:
     def __init__(self):
         self.playwright = None
         self.browser: Browser | None = None
+        self.current_context = None
+        self.current_page = None
         
     async def connect(self):
         self.playwright = await async_playwright().start()
@@ -29,7 +31,8 @@ class BrowserDriver:
         if not self.browser:
             await self.connect()
         # Ensure minimum viewport for tests
-        return await self.browser.new_context(viewport={"width": 1280, "height": 800}) # type: ignore
+        self.current_context = await self.browser.new_context(viewport={"width": 1280, "height": 800}) # type: ignore
+        return self.current_context
 
     async def close(self):
         if self.browser:
