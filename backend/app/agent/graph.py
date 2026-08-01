@@ -6,6 +6,8 @@ from app.agent.grounding.dom_extractor import DOMExtractor
 from app.agent.verification.verifier import Verifier
 from app.browser.actions import ActionDispatcher, ActionType
 from app.browser.driver import BrowserDriver
+from app.agent.guardrails.engine import GuardrailEngine
+from langgraph.checkpoint.memory import MemorySaver
 
 async def perceive(state: AgentState, driver: BrowserDriver):
     page = driver.current_page
@@ -35,6 +37,16 @@ async def plan(state: AgentState, llm_client: LLMClient):
         return {"proposed_action": action, "status": "completed", "finish_reason": action.rationale}
     return {"proposed_action": action, "status": "running"}
 
+async def guardrail_check(state: AgentState):
+    decision = GuardrailEngine.evaluate(state)
+    return {"guardrail_decision": decision}
+
+async def human_approval(state: AgentState):
+    # This node is hit after resumption. We don't need to do much unless the human 
+    # explicitly injected a state update that dictates routing, but typically 
+    # we just trust the new state.
+    return {}
+
 async def act(state: AgentState, driver: BrowserDriver):
     page = driver.current_page
     action = state.get("proposed_action")
@@ -58,7 +70,21 @@ async def verify(state: AgentState):
 def route_after_plan(state: AgentState):
     if state.get("status") == "completed":
         return END
+    return "guardrail_check"
+
+def route_after_guardrail(state: AgentState):
+    decision = state.get("guardrail_decision")
+    if decision == "REQUIRE_HUMAN_APPROVAL":
+        return "human_approval"
+    elif decision == "DENY":
+        return "plan"
     return "act"
+
+def route_after_human(state: AgentState):
+    decision = state.get("guardrail_decision")
+    if decision == "ALLOW":
+        return "act"
+    return "plan"
 
 def build_graph(driver: BrowserDriver, llm_client: LLMClient):
     graph = StateGraph(AgentState)
@@ -79,6 +105,8 @@ def build_graph(driver: BrowserDriver, llm_client: LLMClient):
         
     graph.add_node("perceive", perceive_node)
     graph.add_node("plan", plan_node)
+    graph.add_node("guardrail_check", guardrail_check)
+    graph.add_node("human_approval", human_approval)
     graph.add_node("act", act_node)
     graph.add_node("verify", verify_node)
     
@@ -86,9 +114,13 @@ def build_graph(driver: BrowserDriver, llm_client: LLMClient):
     
     graph.add_edge("perceive", "plan")
     
-    graph.add_conditional_edges("plan", route_after_plan, {END: END, "act": "act"})
+    graph.add_conditional_edges("plan", route_after_plan, {END: END, "guardrail_check": "guardrail_check"})
+    graph.add_conditional_edges("guardrail_check", route_after_guardrail, {"human_approval": "human_approval", "act": "act", "plan": "plan"})
+    graph.add_conditional_edges("human_approval", route_after_human, {"act": "act", "plan": "plan"})
     
     graph.add_edge("act", "verify")
     graph.add_edge("verify", "perceive")
     
-    return graph.compile()
+    # We add a checkpointer to enable interrupts
+    memory = MemorySaver()
+    return graph.compile(checkpointer=memory, interrupt_before=["human_approval"])
