@@ -1,6 +1,7 @@
 import uuid
 import json
 import asyncio
+from fastapi.encoders import jsonable_encoder
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 router = APIRouter()
@@ -23,7 +24,7 @@ class ConnectionManager:
 
     async def broadcast_to_run(self, run_id: uuid.UUID, event: str, data: dict):
         if run_id in self.active_connections:
-            message = json.dumps({"event": event, "data": data})
+            message = json.dumps({"event": event, "data": jsonable_encoder(data)})
             for connection in self.active_connections[run_id]:
                 await connection.send_text(message)
 

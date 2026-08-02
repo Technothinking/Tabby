@@ -1,4 +1,5 @@
 import uuid
+from typing import List
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -6,11 +7,13 @@ from sqlalchemy.orm import selectinload
 from app.db.session import get_db
 from app.db.models import Run, Step, Approval
 from app.api.schemas import RunCreate, RunResponse, ApprovalRequestPayload
+from fastapi import BackgroundTasks
+from app.api.worker import execute_run_task
 
 router = APIRouter()
 
 @router.post("", response_model=RunResponse, status_code=201)
-async def create_run(run_in: RunCreate, db: AsyncSession = Depends(get_db)):
+async def create_run(run_in: RunCreate, background_tasks: BackgroundTasks, db: AsyncSession = Depends(get_db)):
     run = Run(
         goal=run_in.goal,
         task_id=run_in.task_id,
@@ -23,6 +26,8 @@ async def create_run(run_in: RunCreate, db: AsyncSession = Depends(get_db)):
     await db.commit()
     await db.refresh(run)
     
+    background_tasks.add_task(execute_run_task, run.id, run.goal)
+    
     # Minimal response, async worker orchestration will be wired next
     # Return as dict to prevent Pydantic from triggering lazy-loads on relationship `steps`.
     return {
@@ -31,6 +36,18 @@ async def create_run(run_in: RunCreate, db: AsyncSession = Depends(get_db)):
         "status": run.status,
         "steps": []
     }
+
+@router.get("", response_model=List[RunResponse])
+async def list_runs(db: AsyncSession = Depends(get_db), limit: int = 20, offset: int = 0):
+    result = await db.execute(
+        select(Run)
+        .options(selectinload(Run.steps))
+        .order_by(Run.started_at.desc())
+        .limit(limit)
+        .offset(offset)
+    )
+    runs = result.scalars().all()
+    return runs
 
 @router.get("/{run_id}", response_model=RunResponse)
 async def get_run(run_id: uuid.UUID, db: AsyncSession = Depends(get_db)):

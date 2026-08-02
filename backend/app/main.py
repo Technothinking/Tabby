@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Depends, Request
 from fastapi.responses import Response
 from pydantic import BaseModel
-from pydantic_settings import BaseSettings
+from pydantic import BaseModel
 from app.browser.actions import ProposedAction, ActionDispatcher
 from app.browser.driver import BrowserDriver
 from app.agent.grounding.dom_extractor import DOMExtractor
@@ -11,18 +11,7 @@ from app.api.ws import router as ws_router
 class ObserveRequest(BaseModel):
     url: str
 
-class Settings(BaseSettings):
-    postgres_host: str = "postgres"
-    postgres_port: int = 5432
-    postgres_db: str = "aboa"
-    postgres_user: str = "aboa"
-    postgres_password: str = "password"
-    redis_url: str = "redis://redis:6379/0"
-
-    class Config:
-        env_file = ".env"
-
-settings = Settings()
+from app.config.settings import settings
 
 app = FastAPI(title="Autonomous Browser-Operating Agent (ABOA) API")
 
