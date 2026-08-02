@@ -8,11 +8,13 @@ interface RunStore {
     connectToRun: (runId: string) => void;
     disconnect: () => void;
     sendApproval: (approved: boolean) => void;
+    currentScreenshot: string | null;
 }
 
 export const useRunStore = create<RunStore>((set, get) => ({
     activeRun: null,
     socket: null,
+    currentScreenshot: null,
     setActiveRun: (run) => set({ activeRun: run }),
     connectToRun: (runId) => {
         // Disconnect existing
@@ -45,6 +47,10 @@ export const useRunStore = create<RunStore>((set, get) => ({
                     } else {
                         newRun.steps.push(data.data);
                     }
+
+                    if (data.data.observation_ref?.screenshot_b64) {
+                        set({ currentScreenshot: data.data.observation_ref.screenshot_b64 });
+                    }
                 } else if (data.event === 'run_status') {
                     newRun.status = data.data.status;
                 }
@@ -58,7 +64,7 @@ export const useRunStore = create<RunStore>((set, get) => ({
     disconnect: () => {
         const { socket } = get();
         if (socket) socket.close();
-        set({ activeRun: null, socket: null });
+        set({ activeRun: null, socket: null, currentScreenshot: null });
     },
     sendApproval: (approved: boolean) => {
         const { socket } = get();

@@ -7,7 +7,7 @@ import { ApprovalModal } from "../components/ApprovalModal";
 
 export function RunViewer() {
     const { id } = useParams();
-    const { activeRun, setActiveRun, connectToRun, disconnect } = useRunStore();
+    const { activeRun, setActiveRun, connectToRun, disconnect, currentScreenshot } = useRunStore();
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -76,12 +76,14 @@ export function RunViewer() {
                 {/* VISUAL PANEL (Screenshot / Output) */}
                 <main className="viewer-main">
                     <div className="screen-frame">
-                        {/* Currently we don't have a Base64 screenshot streaming in step events yet, 
-                            but we placeholder it for Phase 6. */}
-                        <div className="screen-placeholder">
-                            <div className="scan-line"></div>
-                            {activeRun.status === 'running' ? 'Observing Environment...' : 'Task Terminated'}
-                        </div>
+                        {currentScreenshot ? (
+                            <img src={`data:image/jpeg;base64,${currentScreenshot}`} alt="Live Agent View" className="live-screenshot" />
+                        ) : (
+                            <div className="screen-placeholder">
+                                <div className="scan-line"></div>
+                                {activeRun.status === 'running' ? 'Observing Environment...' : 'Task Terminated'}
+                            </div>
+                        )}
                     </div>
                 </main>
             </div>

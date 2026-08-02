@@ -1,4 +1,5 @@
 from playwright.async_api import Page
+import base64
 from .grounded_observation import GroundedObservation
 
 # This script finds interactive elements, tags them with data-aboa-id, and emits a structured list.
@@ -56,6 +57,11 @@ class DOMExtractor:
         # Run the injection script on the page
         dom_text = await page.evaluate(INJECTION_SCRIPT)
         
+        # Capture raw visual screenshot (JPEG for smaller size, 70 quality)
+        # Using base64 encoding to stream over websockets
+        raw_bytes = await page.screenshot(type="jpeg", quality=70)
+        screenshot_b64 = base64.b64encode(raw_bytes).decode('utf-8')
+        
         # In a real implementation we would recursively extract from iframes,
         # but for this iteration we cover the root frame.
-        return GroundedObservation(dom_text=dom_text)
+        return GroundedObservation(dom_text=dom_text, screenshot_b64=screenshot_b64)
