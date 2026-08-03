@@ -43,6 +43,19 @@ async def perceive(state: AgentState, driver: BrowserDriver):
         return {"status": "failed", "finish_reason": "Browser page not found"}
         
     obs = await DOMExtractor.extract(page)
+    
+    if obs.needs_som_fallback:
+        from app.agent.grounding.som_annotator import SoMAnnotator
+        from app.agent.grounding.vlm_grounder import VLMGrounder
+        
+        print("Set-Of-Marks Triggered! Extracting visual bounding boxes...")
+        som_b64 = await SoMAnnotator.annotate_and_screenshot(page)
+        goal = state.get("goal", "")
+        
+        suggested_id = await VLMGrounder.resolve_target(som_b64, goal, obs.dom_text)
+        if suggested_id:
+            obs.dom_text += f"\n\n[VLM_SUGGESTED_TARGET] The Vision analysis recommends interacting with {suggested_id} to achieve your goal."
+            
     return {"observation": obs, "step_index": state.get("step_index", 0) + 1}
 
 async def plan(state: AgentState, llm_client: LLMClient):
@@ -145,7 +158,7 @@ def build_graph(driver: BrowserDriver, llm_client: LLMClient):
     graph.add_edge("retrieve_memory", "perceive")
     graph.add_edge("perceive", "plan")
     
-    graph.add_conditional_edges("plan", route_after_plan, {END: END, "guardrail_check": "guardrail_check"})
+    graph.add_conditional_edges("plan", route_after_plan, {"finalize": "finalize", "guardrail_check": "guardrail_check"})
     graph.add_conditional_edges("guardrail_check", route_after_guardrail, {"human_approval": "human_approval", "act": "act", "plan": "plan"})
     graph.add_conditional_edges("human_approval", route_after_human, {"act": "act", "plan": "plan"})
     

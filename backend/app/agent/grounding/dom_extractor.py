@@ -9,8 +9,8 @@ INJECTION_SCRIPT = """
     let idCounter = 1;
     const items = [];
     
-    // Select elements that are typically interactive
-    const selector = 'a, button, input, select, textarea, [role="button"], [role="link"], [role="checkbox"], [role="menuitem"], [role="tab"], [tabindex]';
+    // Select elements that are typically interactive, plus canvas for VLM fallback support
+    const selector = 'a, button, input, select, textarea, canvas, [role="button"], [role="link"], [role="checkbox"], [role="menuitem"], [role="tab"], [tabindex]';
     const elements = document.querySelectorAll(selector);
     
     elements.forEach(el => {
@@ -58,10 +58,16 @@ class DOMExtractor:
         dom_text = await page.evaluate(INJECTION_SCRIPT)
         
         # Capture raw visual screenshot (JPEG for smaller size, 70 quality)
-        # Using base64 encoding to stream over websockets
-        raw_bytes = await page.screenshot(type="jpeg", quality=70)
-        screenshot_b64 = base64.b64encode(raw_bytes).decode('utf-8')
+        buffer = await page.screenshot(type="jpeg", quality=70)
+        screenshot_b64 = base64.b64encode(buffer).decode("utf-8")
         
-        # In a real implementation we would recursively extract from iframes,
-        # but for this iteration we cover the root frame.
-        return GroundedObservation(dom_text=dom_text, screenshot_b64=screenshot_b64)
+        # Heuristics for Set-Of-Marks Fallback
+        # 1. Canvas presence
+        has_canvas = await page.evaluate("() => document.querySelectorAll('canvas').length > 0")
+        
+        # 2. Unlabeled ratio
+        lines = [l for l in dom_text.split("\n") if l.strip()]
+        unlabeled_count = sum(1 for l in lines if '""' in l)
+        needs_som = has_canvas or (len(lines) > 0 and (unlabeled_count / len(lines)) > 0.3)
+        
+        return GroundedObservation(dom_text=dom_text, screenshot_b64=screenshot_b64, needs_som_fallback=needs_som)

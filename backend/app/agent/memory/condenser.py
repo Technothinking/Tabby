@@ -49,7 +49,7 @@ Please condense this into a structured TraceSummary indicating the overarching s
         """
         
         response = client.models.generate_content(
-            model="gemini-1.5-flash",
+            model="gemini-flash-latest",
             contents=prompt,
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",

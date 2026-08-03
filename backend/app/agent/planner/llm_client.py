@@ -10,7 +10,7 @@ def is_rate_limit(exception):
     return isinstance(exception, ClientError) and exception.code == 429
 
 class LLMClient:
-    def __init__(self, model_name: str = "gemini-1.5-flash"):
+    def __init__(self, model_name: str = "gemini-flash-latest"):
         if not settings.gemini_api_key:
             raise ValueError("GEMINI_API_KEY is missing from environment variables.")
         self.client = genai.Client(api_key=settings.gemini_api_key)

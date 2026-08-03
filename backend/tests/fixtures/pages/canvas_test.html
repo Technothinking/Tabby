@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Canvas Target Checkout</title>
+</head>
+<body>
+    <h1>Canvas UI Element</h1>
+    <button id="real-button">Purchase Hidden Item</button>
+    <canvas id="checkout_surface" width="400" height="300"></canvas>
+    
+    <script>
+        const ctx = document.getElementById('checkout_surface').getContext('2d');
+        ctx.fillStyle = '#EEE';
+        ctx.fillRect(0, 0, 400, 300);
+        ctx.fillStyle = '#000';
+        ctx.font = '20px Arial';
+        ctx.fillText('Pay Now', 150, 150);
+    </script>
+</body>
+</html>
