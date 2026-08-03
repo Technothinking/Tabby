@@ -80,4 +80,4 @@ class TraceEmbedding(Base):
     __tablename__ = "trace_embeddings"
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     trace_summary_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("trace_summaries.id", ondelete="CASCADE"))
-    embedding = mapped_column(Vector(768), nullable=False)
+    embedding = mapped_column(Vector(3072), nullable=False)

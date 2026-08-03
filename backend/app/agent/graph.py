@@ -9,6 +9,34 @@ from app.browser.driver import BrowserDriver
 from app.agent.guardrails.engine import GuardrailEngine
 from langgraph.checkpoint.memory import MemorySaver
 
+async def retrieve_memory(state: AgentState):
+    from app.agent.memory.retriever import MemoryRetriever
+    goal = state.get("goal")
+    if not goal:
+        return {"memory_hints": []}
+    hints = await MemoryRetriever.retrieve_hints(goal, domain_hint="unknown", top_k=2)
+    formatted = []
+    for h in hints:
+        formatted.append(f"• Domain: {h.get('domain')} Outcome: {h.get('outcome')} Strategy: {h.get('strategy')}")
+    return {"memory_hints": formatted}
+
+async def finalize(state: AgentState):
+    from app.agent.memory.condenser import TraceCondenser
+    from app.agent.memory.embeddings import Embedder
+    from app.agent.memory.writer import MemoryWriter
+    
+    run_id = state.get("run_id")
+    if run_id:
+        try:
+            summary_out = await TraceCondenser.condense(state)
+            embedding = await Embedder.embed_trace(summary_out.model_dump())
+            await MemoryWriter.persist_trace(run_id, summary_out.model_dump(), embedding)
+            print("Successfully persisted semantic memory trace")
+        except Exception as e:
+            print(f"Error persisting trace: {e}")
+    
+    return {}
+
 async def perceive(state: AgentState, driver: BrowserDriver):
     page = driver.current_page
     if not page:
@@ -69,7 +97,7 @@ async def verify(state: AgentState):
 
 def route_after_plan(state: AgentState):
     if state.get("status") == "completed":
-        return END
+        return "finalize"
     return "guardrail_check"
 
 def route_after_guardrail(state: AgentState):
@@ -109,9 +137,12 @@ def build_graph(driver: BrowserDriver, llm_client: LLMClient):
     graph.add_node("human_approval", human_approval)
     graph.add_node("act", act_node)
     graph.add_node("verify", verify_node)
+    graph.add_node("retrieve_memory", retrieve_memory)
+    graph.add_node("finalize", finalize)
     
-    graph.set_entry_point("perceive")
+    graph.set_entry_point("retrieve_memory")
     
+    graph.add_edge("retrieve_memory", "perceive")
     graph.add_edge("perceive", "plan")
     
     graph.add_conditional_edges("plan", route_after_plan, {END: END, "guardrail_check": "guardrail_check"})
@@ -120,6 +151,7 @@ def build_graph(driver: BrowserDriver, llm_client: LLMClient):
     
     graph.add_edge("act", "verify")
     graph.add_edge("verify", "perceive")
+    graph.add_edge("finalize", END)
     
     # We add a checkpointer to enable interrupts
     memory = MemorySaver()

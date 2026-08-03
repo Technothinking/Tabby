@@ -26,7 +26,7 @@ async def execute_run_task(run_id: uuid.UUID, goal: str):
         }
         
         graph = build_graph(driver, llm)
-        config = {"configurable": {"thread_id": str(run_id)}, "recursion_limit": 25}
+        config = {"configurable": {"thread_id": str(run_id)}, "recursion_limit": 250}
         
         # We use astream to intercept state updates and stream them to WS
         async for s in graph.astream(state, config=config):
